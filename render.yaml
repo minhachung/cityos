@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: cityos-minhachung
+    runtime: docker
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: CITYOS_PUBLIC_DEMO
+        value: "1"

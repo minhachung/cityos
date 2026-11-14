@@ -1,10 +1,14 @@
 """CityOS backend: filter and aggregate service requests; sync official 311 records."""
 from contextlib import asynccontextmanager
+import logging
+import os
+from pathlib import Path
 from datetime import datetime, timezone
 from typing import Annotated
 import httpx
 from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
@@ -22,6 +26,15 @@ async def lifespan(app: FastAPI):
     with SessionLocal() as db:
         if db.scalar(select(func.count()).select_from(Complaint)) == 0:
             seed_demo(db)
+    # The public portfolio demo refreshes a bounded public-data snapshot on boot.
+    # On Render's free tier SQLite is ephemeral; this is intentional, not persistence.
+    if os.getenv("CITYOS_PUBLIC_DEMO") == "1":
+        try:
+            rows = await fetch_recent(500)
+            with SessionLocal() as db:
+                upsert_records(db, rows)
+        except (httpx.HTTPError, ValueError, OSError) as exc:
+            logging.getLogger(__name__).warning("NYC 311 startup import failed: %s", exc)
     yield
 
 
@@ -155,6 +168,8 @@ def get_allocation(db: Db, borough: str | None = None, q: str | None = None,
 
 @app.post("/api/ingest")
 async def ingest(db: Db, limit: int = Query(500, ge=1, le=1000)):
+    if os.getenv("CITYOS_PUBLIC_DEMO") == "1":
+        raise HTTPException(status_code=403, detail="Public demo is read-only; data refreshes on service startup.")
     try:
         rows = await fetch_recent(limit)
         accepted, inserted = upsert_records(db, rows)
@@ -162,3 +177,10 @@ async def ingest(db: Db, limit: int = Query(500, ge=1, le=1000)):
         raise HTTPException(status_code=502, detail=f"NYC Open Data is unavailable: {exc}") from exc
     return {"fetched": len(rows), "accepted": accepted, "inserted": inserted,
             "message": "Imported official NYC 311 records. Demo records remain clearly labeled."}
+
+
+# Docker production build copies the Vite output here. Keep this AFTER API routes
+# so /api/*, /health, and /docs continue to resolve to FastAPI.
+STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
+if STATIC_DIR.is_dir():
+    app.mount("/", StaticFiles(directory=str(STATIC_DIR), html=True), name="dashboard")
