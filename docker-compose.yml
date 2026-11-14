@@ -1,0 +1,13 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: cityos
+      POSTGRES_PASSWORD: cityos
+      POSTGRES_DB: cityos
+    ports:
+      - "5432:5432"
+    volumes:
+      - cityos_pgdata:/var/lib/postgresql/data
+volumes:
+  cityos_pgdata:
