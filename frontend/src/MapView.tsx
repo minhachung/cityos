@@ -11,8 +11,8 @@ export default function MapView({items}: {items: Complaint[]}) {
   useEffect(() => {
     if (!container.current || map.current) return;
     const m = L.map(container.current, { zoomControl: false, scrollWheelZoom: false }).setView([40.716, -73.95], 10);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { maxZoom: 18,
-      attribution: '&copy; OpenStreetMap contributors &copy; CARTO' }).addTo(m);
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>' }).addTo(m);
     L.control.zoom({position:'bottomright'}).addTo(m);
     map.current = m; layer.current = L.layerGroup().addTo(m);
     return () => { m.remove(); map.current = null; layer.current = null; };

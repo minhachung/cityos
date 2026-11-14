@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Activity, ArrowDownRight, ArrowRight, ArrowUpRight, BarChart3, Building2, CheckCircle2, CircleAlert, Clock3, Database, ExternalLink, Filter, GitBranch, Layers3, LoaderCircle, MapPin, RefreshCw, Search, ShieldCheck, ListOrdered, Route, Users } from 'lucide-react';
 import MapView from './MapView';
+import AdminControls from './AdminControls';
 import { getComplaints, getStats, getPriorities, getAllocation, import311 } from './api';
 import type { Complaint, Stats, PriorityPage, AllocationResult } from './types';
 
-const IS_PUBLIC_DEMO = import.meta.env.PROD;
 const BOROUGHS = ['ALL', 'MANHATTAN', 'BROOKLYN', 'QUEENS', 'BRONX', 'STATEN ISLAND'];
 const STATUSES = ['ALL', 'Open', 'Closed', 'In Progress'];
 const shortDate = (d: string) => new Date(d).toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
@@ -82,17 +82,17 @@ export default function App() {
       </nav>
       <div className="workspace-label lower-label">DATA SOURCES</div>
       <div className="sidebar-source"><span className={`source-indicator ${hasReal?'live':''}`}/><div><b>NYC Open Data</b><small>{hasReal ? 'Public 311 records loaded' : 'Demo records loaded'}</small></div></div>
-      <div className="sidebar-bottom"><div className="sidebar-tip"><ShieldCheck size={17}/><p><strong>Designed for decisions</strong><span>Build visibility before automation.</span></p></div><div className="version">CITYOS / MVP 0.3.0</div></div>
+      <div className="sidebar-bottom"><div className="sidebar-tip"><ShieldCheck size={17}/><p><strong>Designed for decisions</strong><span>Build visibility before automation.</span></p></div><div className="version">CITYOS / MVP 0.4.0</div></div>
     </aside>
     <main className="main">
       <header className="topbar"><div className="breadcrumbs">Workspace <span>/</span> <b>Service operations</b></div><div className="topbar-right"><span className="topbar-status"><span className="mini-dot"/> {sampleOnly?'Demo workspace':hasReal?'NYC 311 connected':'Loading data'}</span><div className="avatar">CO</div></div></header>
       <div className="content">
         <div className="page-heading"><div><div className="eyebrow"><span className="eyebrow-line"/> CITY OPERATIONS / NEW YORK</div><h1>Service intelligence<span className="heading-dot">.</span></h1><p className="subtitle">A clearer view of the requests, patterns, and priorities shaping a city.</p></div>
-          {IS_PUBLIC_DEMO ? <span className="btn btn-public-demo"><ShieldCheck size={16}/> Read-only public demo</span> : <button className="btn btn-primary" onClick={sync} disabled={syncing}><RefreshCw size={16} className={syncing?'spin':''}/>{syncing?'Syncing NYC 311…':'Sync NYC 311 data'}</button>}
+          <AdminControls onSync={sync} syncing={syncing}/>
         </div>
         {error && <div className="alert alert-error"><CircleAlert size={18}/><span>{error}</span><button onClick={()=>setError('')}>Dismiss</button></div>}
         {notice && <div className="alert alert-success"><CheckCircle2 size={18}/><span>{notice}</span><button onClick={()=>setNotice('')}>Dismiss</button></div>}
-        <div className="data-notice"><div className="notice-icon"><Database size={17}/></div><span>{sampleOnly ? <><strong>Demo environment.</strong> These records are fictional examples. {IS_PUBLIC_DEMO ? 'NYC 311 records are temporarily unavailable; try revisiting the demo later.' : 'Select “Sync NYC 311 data” to import real public records.'}</> : <><strong>Data provenance:</strong> {fmt(counts.demo)} demo records, {fmt(counts.total-counts.demo)} imported NYC 311 records in the current filter. Demo records are always labeled.</>}</span><a href="https://data.cityofnewyork.us/d/erm2-nwe9" target="_blank" rel="noreferrer">Dataset <ExternalLink size={13}/></a></div>
+        <div className="data-notice"><div className="notice-icon"><Database size={17}/></div><span>{sampleOnly ? <><strong>Demo environment.</strong> These records are fictional examples. {'Log in as admin to refresh public data, or wait for the next server refresh.'}</> : <><strong>Data provenance:</strong> {fmt(counts.demo)} demo records, {fmt(counts.total-counts.demo)} imported NYC 311 records in the current filter. Demo records are always labeled.</>}</span><a href="https://data.cityofnewyork.us/d/erm2-nwe9" target="_blank" rel="noreferrer">Dataset <ExternalLink size={13}/></a></div>
         <div className="section-row"><h2>At a glance</h2><div className="refreshed"><Clock3 size={14}/> Stored records · not live dispatch data</div></div>
         <div className="metric-grid">
           <div className="metric-card"><div className="metric-top"><span>Total requests</span><div className="icon-soft green"><Layers3 size={17}/></div></div><div className="metric-number">{fmt(counts.total)}</div>{metricChange('Matching current filters')}<div className="metric-accent"/></div>

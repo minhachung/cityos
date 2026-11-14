@@ -6,7 +6,7 @@ from pathlib import Path
 from datetime import datetime, timezone
 from typing import Annotated
 import httpx
-from fastapi import Depends, FastAPI, HTTPException, Query
+from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict
@@ -18,6 +18,7 @@ from .sample import seed_demo
 from .ingest import fetch_recent, upsert_records
 from .priority import priority_for
 from .allocation import allocate
+from .auth import router as admin_router, needs_admin, require_admin
 
 
 @asynccontextmanager
@@ -38,7 +39,8 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="CityOS API", version="0.3.0", lifespan=lifespan)
+app = FastAPI(title="CityOS API", version="0.4.0", lifespan=lifespan)
+app.include_router(admin_router)
 app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
                    allow_credentials=False, allow_methods=["GET", "POST"], allow_headers=["Content-Type"])
 Db = Annotated[Session, Depends(get_db)]
@@ -167,9 +169,9 @@ def get_allocation(db: Db, borough: str | None = None, q: str | None = None,
 
 
 @app.post("/api/ingest")
-async def ingest(db: Db, limit: int = Query(500, ge=1, le=1000)):
-    if os.getenv("CITYOS_PUBLIC_DEMO") == "1":
-        raise HTTPException(status_code=403, detail="Public demo is read-only; data refreshes on service startup.")
+async def ingest(request: Request, db: Db, limit: int = Query(500, ge=1, le=1000)):
+    if needs_admin():
+        require_admin(request)
     try:
         rows = await fetch_recent(limit)
         accepted, inserted = upsert_records(db, rows)

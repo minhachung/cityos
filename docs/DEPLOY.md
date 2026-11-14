@@ -14,11 +14,15 @@ The root `Dockerfile` builds the React UI and serves it from FastAPI on **one do
 ## How the public demo works
 
 - `CITYOS_PUBLIC_DEMO=1` imports up to 500 public NYC 311 records when the service starts. If the public data feed is unavailable, the app still opens using the clearly-labeled fictional examples.
-- The public `POST /api/ingest` endpoint is **disabled** (403), so anonymous visitors cannot trigger repeated imports.
-- The local development app still supports manual sync. Keep using `backend` on port 8001 and `frontend` on port 5173 locally.
+- The public `POST /api/ingest` endpoint is **admin-only**. Without a configured password hash,
+  it fails closed; anonymous visitors cannot trigger repeated imports.
+- Configure `CITYOS_ADMIN_PASSWORD_HASH` as a **secret environment variable on Render**,
+  following [Admin and map setup](ADMIN_AND_MAP.md). Never commit the value to GitHub.
+- Local development without an admin password still supports manual sync. Keep using
+  `backend` on port 8001 and `frontend` on port 5173 locally.
 - The free Render service **spins down after inactivity**. Its local SQLite file is ephemeral: imported records are lost on restart, then imported again on startup. This deployment is a short-lived portfolio demonstration, **not** a persistent database or production system.
 - As a result, do not claim the demo has continuous live synchronization or persistence. It shows a bounded current snapshot refreshed at each service startup.
-- A production edition should use a durable PostgreSQL instance, scheduled ingestion, authentication, and API rate limiting. Render free Postgres currently expires after 30 days, so this demonstration intentionally uses ephemeral SQLite instead.
+- A production edition should use a durable PostgreSQL instance, scheduled ingestion, managed authentication/MFA, and distributed API rate limiting. Render free Postgres currently expires after 30 days, so this demonstration intentionally uses ephemeral SQLite instead.
 
 ## Verify locally
 

@@ -24,3 +24,5 @@ export type AllocationResult = {
   unmapped_skipped:number; considered:number; eligible_requests:number;
   optimized:AllocationMethod; fifo:AllocationMethod; objective_gain:number; methodology:string;
 };
+
+export type AdminStatus = { enabled: boolean; requires_auth: boolean; authenticated: boolean };
