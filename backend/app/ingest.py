@@ -30,14 +30,23 @@ def normalize(row: dict) -> dict | None:
         return None
 
 
-async def fetch_recent(limit: int = 500) -> list[dict]:
-    params = {"$select": FIELDS, "$order": "created_date DESC", "$limit": limit}
-    async with httpx.AsyncClient(timeout=25, headers={"User-Agent": "CityOS educational prototype (GitHub project)"}) as client:
+async def fetch_recent(limit: int = 500, offset: int = 0):
+    params = {
+        "$select": FIELDS,
+        "$order": "created_date DESC, unique_key DESC",
+        "$limit": limit,
+        "$offset": offset,
+    }
+    async with httpx.AsyncClient(
+        timeout=25,
+        headers={"User-Agent": "CityOS educational prototype"}
+    ) as client:
         response = await client.get(API_URL, params=params)
         response.raise_for_status()
         rows = response.json()
+
     if not isinstance(rows, list):
-        raise ValueError("Unexpected NYC Open Data API response")
+        raise ValueError("Unexpected NYC Open Data response")
     return rows
 
 
