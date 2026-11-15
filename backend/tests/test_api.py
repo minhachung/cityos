@@ -70,7 +70,7 @@ def test_normalization_and_idempotent_import():
 def test_ingest_endpoint_with_mocked_nyc_api(monkeypatch):
     from app import main
 
-    async def fake_fetch_recent(limit):
+    async def fake_fetch_recent(limit, offset=0):
         assert limit == 2
         return [{"unique_key": "311-123", "created_date": "2026-11-12T13:00:00.000", "complaint_type": "Pothole",
                  "descriptor": "Road defect", "borough": "Brooklyn", "status": "Open",
