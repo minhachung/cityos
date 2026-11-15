@@ -170,15 +170,23 @@ def get_allocation(db: Db, borough: str | None = None, q: str | None = None,
 
 @app.post("/api/ingest")
 async def ingest(request: Request, db: Db, limit: int = Query(500, ge=1, le=1000)):
-    if needs_admin():
-        require_admin(request)
-    try:
-        rows = await fetch_recent(limit)
-        accepted, inserted = upsert_records(db, rows)
-    except (httpx.HTTPError, ValueError) as exc:
-        raise HTTPException(status_code=502, detail=f"NYC Open Data is unavailable: {exc}") from exc
-    return {"fetched": len(rows), "accepted": accepted, "inserted": inserted,
-            "message": "Imported official NYC 311 records. Demo records remain clearly labeled."}
+    # Check the latest requests
+    latest = await fetch_recent(limit)
+    accepted_new, inserted_new = upsert_records(db, latest)
+
+    # Continue importing older records
+    stored = db.scalar(
+        select(func.count())
+        .select_from(Complaint)
+        .where(Complaint.source == "nyc311")
+    ) or 0
+
+    older = await fetch_recent(limit, offset=stored)
+    accepted_old, inserted_old = upsert_records(db, older)
+
+    accepted = accepted_new + accepted_old
+    inserted = inserted_new + inserted_old
+    rows = latest + older
 
 
 # Docker production build copies the Vite output here. Keep this AFTER API routes
